@@ -1,20 +1,130 @@
-﻿// EmergencyShutdown.cpp : 此文件包含 "main" 函数。程序执行将在此处开始并结束。
-//
-
+﻿#include <chrono>
 #include <iostream>
+#include <string>
+#include <thread>
+#include <Windows.h>
 
-int main()
+typedef enum _SHUTDOWN_ACTION
 {
-    std::cout << "Hello World!\n";
+    ShutdownNoReboot,
+    ShutdownReboot,
+    ShutdownPowerOff
+} SHUTDOWN_ACTION,
+    *PSHUTDOWN_ACTION;
+
+typedef LONG(__stdcall *PFN_NT_SHUTDOWN_SYSTEM)(DWORD SHUTDOWN_ACTION);
+
+int DisplayError(const std::wstring &message);
+std::wstring GetFormattedMessage(DWORD, LPCWSTR, DWORD, ...);
+
+int main(int argc, char *argv[])
+{
+    std::wstring programName = std::wstring(argv[0], argv[0] + strlen(argv[0]));
+    std::wcout << L"Program Name: " << programName << std::endl;
+
+    if (argc < 2 || strcmp(argv[1], "/?") == 0)
+    {
+        std::wcout << L"Usage: " << programName << L" [/r | /s] [/t seconds]\n"
+                   << L"  /r : Reboot the system\n"
+                   << L"  /s : Shutdown the system\n"
+                   << L"  /t seconds : Set a countdown before executing (default 0)" << std::endl;
+        return 0;
+    }
+
+    SHUTDOWN_ACTION action;
+    int delay = 0;
+
+    std::wcout << L"Processing command: " << argv[1] << std::endl;
+
+    if (strcmp(argv[1], "/r") == 0)
+    {
+        action = ShutdownReboot;
+        std::wcout << L"Action: Reboot" << std::endl;
+    }
+    else if (strcmp(argv[1], "/s") == 0)
+    {
+        action = ShutdownPowerOff;
+        std::wcout << L"Action: Shutdown" << std::endl;
+    }
+    else
+    {
+        std::wcout << L"Invalid option. Use /? for help." << std::endl;
+        return 1;
+    }
+
+    if (argc == 4 && strcmp(argv[2], "/t") == 0)
+    {
+        delay = std::stoi(argv[3]);
+        std::wcout << L"Shutdown delay: " << delay << L" seconds" << std::endl;
+    }
+
+    if (delay > 0)
+    {
+        std::wcout << L"Shutdown will execute in " << delay << L" seconds..." << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(delay));
+    }
+
+    std::wcout << L"Loading ntdll.dll..." << std::endl;
+    HINSTANCE hNtDll = GetModuleHandle(L"ntdll.dll");
+    if (hNtDll == NULL)
+        return DisplayError(L"GetModuleHandle() failed");
+
+    std::wcout << L"Retrieving NtShutdownSystem function..." << std::endl;
+    PFN_NT_SHUTDOWN_SYSTEM pNtShutdownSystem =
+        (PFN_NT_SHUTDOWN_SYSTEM)GetProcAddress(hNtDll, "NtShutdownSystem");
+    if (pNtShutdownSystem == NULL)
+        return DisplayError(L"GetProcAddress() failed");
+
+    std::wcout << L"Adjusting privileges..." << std::endl;
+    HANDLE hToken;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES, &hToken))
+        return DisplayError(L"OpenProcessToken() failed");
+
+    TOKEN_PRIVILEGES tkp;
+    if (!LookupPrivilegeValue(NULL, SE_SHUTDOWN_NAME, &tkp.Privileges[0].Luid))
+        return DisplayError(L"LookupPrivilegeValue() failed");
+
+    tkp.PrivilegeCount = 1;
+    tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+    if (!AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, NULL, 0))
+        return DisplayError(L"AdjustTokenPrivileges() failed");
+
+    CloseHandle(hToken);
+
+    std::wcout << L"Calling NtShutdownSystem..." << std::endl;
+    LONG status = pNtShutdownSystem(action);
+    if (status)
+    {
+        std::wcout << L"NtShutdownSystem() returned 0x" << std::hex << status << std::endl;
+        return 1;
+    }
+
+    std::wcout << L"System " << (action == ShutdownReboot ? L"reboot" : L"shutdown") << L" initiated successfully." << std::endl;
+    return 0;
 }
 
-// 运行程序: Ctrl + F5 或调试 >“开始执行(不调试)”菜单
-// 调试程序: F5 或调试 >“开始调试”菜单
+int DisplayError(const std::wstring &message)
+{
+    DWORD error = GetLastError();
+    std::wstring errorMsg = GetFormattedMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error);
+    std::wcout << message << L": " << errorMsg << std::endl;
+    return 1;
+}
 
-// 入门使用技巧: 
-//   1. 使用解决方案资源管理器窗口添加/管理文件
-//   2. 使用团队资源管理器窗口连接到源代码管理
-//   3. 使用输出窗口查看生成输出和其他消息
-//   4. 使用错误列表窗口查看错误
-//   5. 转到“项目”>“添加新项”以创建新的代码文件，或转到“项目”>“添加现有项”以将现有代码文件添加到项目
-//   6. 将来，若要再次打开此项目，请转到“文件”>“打开”>“项目”并选择 .sln 文件
+std::wstring GetFormattedMessage(DWORD dwFlags, LPCWSTR pMsg, DWORD dwMsgId, ...)
+{
+    LPWSTR pBuffer = NULL;
+    va_list args;
+    va_start(args, dwMsgId);
+
+    FormatMessage(dwFlags | FORMAT_MESSAGE_ALLOCATE_BUFFER,
+                  pMsg, dwMsgId,
+                  MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
+                  (LPWSTR)&pBuffer, 0, &args);
+    va_end(args);
+
+    std::wstring result = pBuffer ? pBuffer : L"Unknown error";
+    LocalFree(pBuffer);
+    return result;
+}
