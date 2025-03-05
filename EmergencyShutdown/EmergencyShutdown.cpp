@@ -20,7 +20,7 @@ std::wstring GetFormattedMessage(DWORD, LPCWSTR, DWORD, ...);
 int main(int argc, char *argv[])
 {
     std::wstring programName = std::wstring(argv[0], argv[0] + strlen(argv[0]));
-    std::wcout << L"Program Name: " << programName << std::endl;
+    // std::wcout << L"Program Name: " << programName << std::endl;
 
     if (argc < 2 || strcmp(argv[1], "/?") == 0)
     {
