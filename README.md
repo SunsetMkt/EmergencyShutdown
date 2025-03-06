@@ -4,7 +4,7 @@ Emergency Shutdown for Windows.
 
 ## Warning
 
-Emergency Shutdown powers off the system almost immediately without noticing other applications, which may cause instability and data loss.
+Emergency Shutdown powers off the system almost immediately without notifying other applications, which may cause instability and data loss.
 
 ## Usage
 
@@ -26,6 +26,8 @@ At the final stages of the Windows shutdown process, `NtShutdownSystem` is calle
 `NtSetSystemPowerState` then causes all plug-and-play devices to be shut down and the system to be either halted, powered off, or rebooted.
 
 However, calling these two functions without notifying the system first is extremely dangerous, and may cause instability in the system.
+
+There're reports saying that `NtSetSystemPowerState` does not work in some cases, so this program will use `NtShutdownSystem` instead.
 
 ## Thanks to
 

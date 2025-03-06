@@ -19,7 +19,7 @@ std::wstring GetFormattedMessage(DWORD, LPCWSTR, DWORD, ...);
 
 int main(int argc, char *argv[])
 {
-    std::wcout << L"Retrieving program name..." << std::endl;
+    // std::wcout << L"Retrieving program name..." << std::endl;
     std::wstring programName = std::wstring(argv[0], argv[0] + strlen(argv[0]));
     size_t lastSlash = programName.find_last_of(L"\\/");
     if (lastSlash != std::wstring::npos)
@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
     {
         programName = programName.substr(0, dotPos);
     }
-    std::wcout << L"Program name detected: " << programName << std::endl;
+    // std::wcout << L"Program name detected: " << programName << std::endl;
 
     SHUTDOWN_ACTION action;
     int delay = 0;
@@ -53,7 +53,10 @@ int main(int argc, char *argv[])
             std::wcout << L"Usage: " << programName << L" [/r | /s] [/t seconds]\n"
                        << L"  /r : Reboot the system\n"
                        << L"  /s : Shutdown the system\n"
-                       << L"  /t seconds : Set a countdown before executing (default 0)" << std::endl;
+                       << L"  /t seconds : Set a countdown before executing (default 0)\n"
+                       << L"This program will shutdown or reboot the system immediately by\n"
+                       << L"calling the NtShutdownSystem function without notifying other\n"
+                       << L"applications, which may cause instability and data loss." << std::endl;
             return 0;
         }
 
