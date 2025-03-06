@@ -20,62 +20,73 @@ std::wstring GetFormattedMessage(DWORD, LPCWSTR, DWORD, ...);
 int main(int argc, char *argv[])
 {
     std::wstring programName = std::wstring(argv[0], argv[0] + strlen(argv[0]));
-    // std::wcout << L"Program Name: " << programName << std::endl;
-
-    if (argc < 2 || strcmp(argv[1], "/?") == 0)
+    size_t lastSlash = programName.find_last_of(L"\\/");
+    if (lastSlash != std::wstring::npos)
     {
-        std::wcout << L"Usage: " << programName << L" [/r | /s] [/t seconds]\n"
-                   << L"  /r : Reboot the system\n"
-                   << L"  /s : Shutdown the system\n"
-                   << L"  /t seconds : Set a countdown before executing (default 0)" << std::endl;
-        return 0;
+        programName = programName.substr(lastSlash + 1);
+    }
+    size_t dotPos = programName.find_last_of(L".");
+    if (dotPos != std::wstring::npos)
+    {
+        programName = programName.substr(0, dotPos);
     }
 
     SHUTDOWN_ACTION action;
     int delay = 0;
 
-    std::wcout << L"Processing command: " << argv[1] << std::endl;
-
-    if (strcmp(argv[1], "/r") == 0)
-    {
-        action = ShutdownReboot;
-        std::wcout << L"Action: Reboot" << std::endl;
-    }
-    else if (strcmp(argv[1], "/s") == 0)
+    if (programName == L"ShutdownImmediatelyDangerously")
     {
         action = ShutdownPowerOff;
-        std::wcout << L"Action: Shutdown" << std::endl;
+    }
+    else if (programName == L"RebootImmediatelyDangerously")
+    {
+        action = ShutdownReboot;
     }
     else
     {
-        std::wcout << L"Invalid option. Use /? for help." << std::endl;
-        return 1;
-    }
+        if (argc < 2 || strcmp(argv[1], "/?") == 0)
+        {
+            std::wcout << L"Usage: " << programName << L" [/r | /s] [/t seconds]\n"
+                       << L"  /r : Reboot the system\n"
+                       << L"  /s : Shutdown the system\n"
+                       << L"  /t seconds : Set a countdown before executing (default 0)" << std::endl;
+            return 0;
+        }
 
-    if (argc == 4 && strcmp(argv[2], "/t") == 0)
-    {
-        delay = std::stoi(argv[3]);
-        std::wcout << L"Shutdown delay: " << delay << L" seconds" << std::endl;
+        if (strcmp(argv[1], "/r") == 0)
+        {
+            action = ShutdownReboot;
+        }
+        else if (strcmp(argv[1], "/s") == 0)
+        {
+            action = ShutdownPowerOff;
+        }
+        else
+        {
+            std::wcout << L"Invalid option. Use /? for help." << std::endl;
+            return 1;
+        }
+
+        if (argc == 4 && strcmp(argv[2], "/t") == 0)
+        {
+            delay = std::stoi(argv[3]);
+        }
     }
 
     if (delay > 0)
     {
-        std::wcout << L"Shutdown will execute in " << delay << L" seconds..." << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(delay));
     }
 
-    std::wcout << L"Loading ntdll.dll..." << std::endl;
     HINSTANCE hNtDll = GetModuleHandle(L"ntdll.dll");
     if (hNtDll == NULL)
         return DisplayError(L"GetModuleHandle() failed");
 
-    std::wcout << L"Retrieving NtShutdownSystem function..." << std::endl;
     PFN_NT_SHUTDOWN_SYSTEM pNtShutdownSystem =
         (PFN_NT_SHUTDOWN_SYSTEM)GetProcAddress(hNtDll, "NtShutdownSystem");
     if (pNtShutdownSystem == NULL)
         return DisplayError(L"GetProcAddress() failed");
 
-    std::wcout << L"Adjusting privileges..." << std::endl;
     HANDLE hToken;
     if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES, &hToken))
         return DisplayError(L"OpenProcessToken() failed");
@@ -92,7 +103,6 @@ int main(int argc, char *argv[])
 
     CloseHandle(hToken);
 
-    std::wcout << L"Calling NtShutdownSystem..." << std::endl;
     LONG status = pNtShutdownSystem(action);
     if (status)
     {
@@ -100,7 +110,6 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::wcout << L"System " << (action == ShutdownReboot ? L"reboot" : L"shutdown") << L" initiated successfully." << std::endl;
     return 0;
 }
 
