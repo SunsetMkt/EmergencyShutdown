@@ -129,3 +129,28 @@ int main(int argc, char *argv[])
     std::wcout << L"System " << (action == ShutdownReboot ? L"reboot" : L"shutdown") << L" initiated successfully." << std::endl;
     return 0;
 }
+
+int DisplayError(const std::wstring &message)
+{
+    DWORD error = GetLastError();
+    std::wstring errorMsg = GetFormattedMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error);
+    std::wcout << message << L": " << errorMsg << std::endl;
+    return 1;
+}
+
+std::wstring GetFormattedMessage(DWORD dwFlags, LPCWSTR pMsg, DWORD dwMsgId, ...)
+{
+    LPWSTR pBuffer = NULL;
+    va_list args;
+    va_start(args, dwMsgId);
+
+    FormatMessage(dwFlags | FORMAT_MESSAGE_ALLOCATE_BUFFER,
+                  pMsg, dwMsgId,
+                  MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
+                  (LPWSTR)&pBuffer, 0, &args);
+    va_end(args);
+
+    std::wstring result = pBuffer ? pBuffer : L"Unknown error";
+    LocalFree(pBuffer);
+    return result;
+}
