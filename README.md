@@ -9,11 +9,16 @@ Emergency Shutdown powers off the system almost immediately without notifying ot
 ## Usage
 
 ```plain
-Usage: EmergencyShutdown.exe [/r | /s] [/t seconds]
+Usage: EmergencyShutdown [/r | /s] [/t seconds]
   /r : Reboot the system
   /s : Shutdown the system
   /t seconds : Set a countdown before executing (default 0)
+This program will shutdown or reboot the system immediately by
+calling the NtShutdownSystem function without notifying other
+applications, which may cause instability and data loss.
 ```
+
+Rename the executable to `ShutdownImmediatelyDangerously.exe` or `RebootImmediatelyDangerously.exe` and run it will shutdown or reboot the system immediately.
 
 ## Background
 
