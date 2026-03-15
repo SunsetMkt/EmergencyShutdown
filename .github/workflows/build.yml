@@ -17,10 +17,13 @@ jobs:
       matrix:
         include:
           - platform: x86
+            artifact_name: Win32
             artifact_path: EmergencyShutdown/Release/EmergencyShutdown.exe
           - platform: x64
+            artifact_name: x64
             artifact_path: EmergencyShutdown/x64/Release/EmergencyShutdown.exe
           - platform: ARM64
+            artifact_name: ARM64
             artifact_path: EmergencyShutdown/ARM64/Release/EmergencyShutdown.exe
 
     steps:
@@ -32,8 +35,12 @@ jobs:
       - name: Build
         run: msbuild EmergencyShutdown.sln /p:Configuration=Release /p:Platform=${{ matrix.platform }}
 
+      - name: Rename artifact
+        run: Copy-Item "${{ matrix.artifact_path }}" "EmergencyShutdown-${{ matrix.artifact_name }}.exe"
+        shell: pwsh
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: EmergencyShutdown-${{ matrix.platform }}
-          path: ${{ matrix.artifact_path }}
+          name: EmergencyShutdown-${{ matrix.artifact_name }}
+          path: EmergencyShutdown-${{ matrix.artifact_name }}.exe
