@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - platform: Win32
+          - platform: x86
             artifact_path: EmergencyShutdown/Release/EmergencyShutdown.exe
           - platform: x64
             artifact_path: EmergencyShutdown/x64/Release/EmergencyShutdown.exe
