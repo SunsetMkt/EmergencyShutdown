@@ -18,13 +18,13 @@ jobs:
         include:
           - platform: x86
             artifact_name: Win32
-            artifact_path: EmergencyShutdown/Release/EmergencyShutdown.exe
+            artifact_path: Release/EmergencyShutdown.exe
           - platform: x64
             artifact_name: x64
-            artifact_path: EmergencyShutdown/x64/Release/EmergencyShutdown.exe
+            artifact_path: x64/Release/EmergencyShutdown.exe
           - platform: ARM64
             artifact_name: ARM64
-            artifact_path: EmergencyShutdown/ARM64/Release/EmergencyShutdown.exe
+            artifact_path: ARM64/Release/EmergencyShutdown.exe
 
     steps:
       - uses: actions/checkout@v4
